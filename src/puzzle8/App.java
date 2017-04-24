@@ -39,12 +39,12 @@ public class App {
 	
 	// Do some operation given user-input
 	public static void performOperations(int choice) {
-		String puzzle = "";
+		Puzzle puzzle;
 		int input = -1;
 		switch (choice) {
 		case 1:
-			puzzle = getRandomPuzzle();
-			System.out.println("Random Puzzle: " + puzzle);
+			puzzle = new Puzzle(getRandomPuzzle());
+			System.out.println("Random Puzzle: " + puzzle.toString());
 			promptSolution();
 			while (input == -1) {
 				input = getInput();
@@ -59,9 +59,10 @@ public class App {
 			break;
 		case 2:
 			System.out.println("Enter a Puzzle-8 String: ");
-			puzzle = k.nextLine();
-			System.out.println("P: " + puzzle);
-			if (!isSolvable(puzzle)) {
+			String data = k.nextLine();
+			puzzle = new Puzzle(data);
+			System.out.println("P: " + puzzle.toString());
+			if (!isSolvable(puzzle.toString())) {
 				System.out.println("Invalid puzzle");
 			} else {
 				promptSolution();
@@ -134,56 +135,6 @@ public class App {
 		}
 		
 		return true;
-	}
-	
-	// h(n) = # of misplaced tiles
-	public static int heuristicOne(String state) {
-		char[] goal = GOAL_STATE.toCharArray();
-		char[] current = state.toCharArray();
-		
-		int matches = 0;
-		
-		for (int i = 0; i < goal.length; i++) {
-			if (goal[i] == current[i]) {
-				matches++;
-			}
-		}
-		
-		return matches;
-	}
-	
-	// h(n) =  sum of distances of tiles from their goal positions
-	public static int heuristicTwo(String state) {
-		char[] current = state.toCharArray();
-		
-		int sumOfMoves = 0;
-		
-		for (int i = 0; i < current.length; i++) {
-			sumOfMoves += movesFromSolution(i, Integer.parseInt(""+ current[i]));
-		}
-		
-		return sumOfMoves;
-	}
-	
-	//TODO: 
-	public static ArrayList<String> solve(String initialState) {
-		ArrayList<String> path = new ArrayList<String>();
-		String currentState = initialState;
-		while (!currentState.equals(GOAL_STATE)) {
-			
-		}
-		return path;
-	}
-	
-	public static int movesFromSolution(int currentPosition, int value) {
-		// Coordinates of value's index in a 3 x 3 grid
-		// X and Y are the offset of movements from the goal position
-		int goalPosition = GOAL_STATE.indexOf(""+value);
-		
-		int x = Math.abs((currentPosition % 3) - (goalPosition % 3));
-		int y = Math.abs((currentPosition / 3) - (goalPosition / 3));
-		
-		return x + y;
 	}
 	
 	public static void promptSolution() {
