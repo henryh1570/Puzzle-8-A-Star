@@ -102,19 +102,23 @@ public class Puzzle implements Comparable<Puzzle> {
 	// because the step cost g(n) is uniform for puzzle-8, which means that
 	// evaluation function f(n) = g(n) + h(n)
 	// In other words, every node is expanded in order of decreasing heuristic cost
-	public ArrayList<String> solve(String initialState, int heuristic) {
+	public SolutionData solve(String initialState, int heuristic) {
 		PriorityQueue<Puzzle> frontier = new PriorityQueue<Puzzle>();
 		HashSet<String> exploredSet = new HashSet<String>();
 		
 		frontier.add(new Puzzle(initialState, 0, 0, null));
 		Puzzle current = null;
-
+		double branches = 0.0;
+		long timeElapsed = 0;
+		long timeStart = System.currentTimeMillis();
+		
 		while (!frontier.isEmpty()) {
 			current = frontier.remove();
 			exploredSet.add(current.currentState);
 
 			if (!current.currentState.equals(GOAL_STATE)) {
 				String[] moves = current.getValidMoves();
+				branches += moves.length;
 
 				// Add neighbors to frontier
 				for (String state : moves) {
@@ -133,6 +137,7 @@ public class Puzzle implements Comparable<Puzzle> {
 					}
 				}
 			} else {
+				timeElapsed = System.currentTimeMillis() - timeStart;
 				frontier.clear();
 			}
 		}
@@ -144,7 +149,7 @@ public class Puzzle implements Comparable<Puzzle> {
 			current = current.previousPuzzle;
 		}
 		Collections.reverse(path);
-		return path;
+		return new SolutionData(path, branches/exploredSet.size() ,timeElapsed, exploredSet.size());
 	}
 	
 	// Check if an integer array contains a given value

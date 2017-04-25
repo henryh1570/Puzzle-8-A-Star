@@ -43,12 +43,12 @@ public class App {
 		int input = -1;
 
 		switch (choice) {
-		case 1:
+		case 1: // Single Random Solve
 			puzzle = new Puzzle(getRandomPuzzle(), 0, 0, null);
 			System.out.println("Random Puzzle: " + puzzle.toString());
 			singleSolve(input, puzzle);
 			break;
-		case 2:
+		case 2: // Single User-Input Solve
 			System.out.println("Enter a Puzzle-8 String: ");
 			String data = k.nextLine();
 			if (!isSolvable(data)) {
@@ -59,26 +59,60 @@ public class App {
 				singleSolve(input, puzzle);
 			}
 			break;
-		case 3:
+		case 3: // Terminate
 			System.out.println("Goodbye.");
 			break;
-		case 4:
+		case 4: // Multi-Random, Dual-Heuristics Solving
 			System.out.println("Enter # of tests: ");
 			int iterations = getInput();
+			double aggregateABFH1 = 0.0;
+			double averageDepthH1 = 0.0;
+			double averageSearchCostH1 = 0.0;
+			double averageTimeCostH1 = 0.0;
+			double aggregateABFH2 = 0.0;
+			double averageDepthH2 = 0.0;
+			double averageSearchCostH2 = 0.0;
+			double averageTimeCostH2 = 0.0;
+
+			// Sum the data of the solving iterations, print individual runs
 			for (int i = 0; i < iterations; i++) {
 				puzzle = new Puzzle(getRandomPuzzle(), 0, 0, null);
-				long startTime = System.currentTimeMillis();
-				ArrayList<String> solution = solve(1, puzzle);
-				long elapsedTime = System.currentTimeMillis() - startTime;
-				String output = ("Puzzle " + i + ": " + puzzle.toString() + " | Steps(h1): " + (solution.size() - 1)
-						+ " | Time(h1.ms): " + elapsedTime);
+				SolutionData sol = puzzle.solve(puzzle.toString(), 1);
+				String output = "Puzzle " + i + ": " + puzzle.toString() + " | depth(h1): " + sol.depth + " | ABF(h1): "
+						+ sol.averageBranchingFactor + " | time(h1.ms): " + sol.timeElapsed + " | cost(h1): "
+						+ sol.searchCost;
+				aggregateABFH1 += sol.averageBranchingFactor;
+				averageDepthH1 += sol.depth;
+				averageSearchCostH1 += sol.searchCost;
+				averageTimeCostH1 += sol.timeElapsed;
 
-				startTime = System.currentTimeMillis();
-				solution = solve(2, puzzle);
-				elapsedTime = System.currentTimeMillis() - startTime;
-				output += (" | Steps(h2): " + (solution.size() - 1) + " | Time(h2.ms): " + elapsedTime);
+				sol = puzzle.solve(puzzle.toString(), 2);
+				output += " | depth(h2): " + sol.depth + " | ABF(h2): " + sol.averageBranchingFactor
+						+ " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): " + sol.searchCost;
+				aggregateABFH2 += sol.averageBranchingFactor;
+				averageDepthH2 += sol.depth;
+				averageSearchCostH2 += sol.searchCost;
+				averageTimeCostH2 += sol.timeElapsed;
+
 				System.out.println(output);
 			}
+
+			// Average the sums and print the averaged data
+			aggregateABFH1 = aggregateABFH1 / iterations;
+			averageDepthH1 = averageDepthH1 / iterations;
+			averageSearchCostH1 = averageSearchCostH1 / iterations;
+			averageTimeCostH1 = averageTimeCostH1 / iterations;
+
+			aggregateABFH2 = aggregateABFH2 / iterations;
+			averageDepthH2 = averageDepthH2 / iterations;
+			averageSearchCostH2 = averageSearchCostH2 / iterations;
+			averageTimeCostH2 = averageTimeCostH2 / iterations;
+
+			System.out.println("Average Summary");
+			System.out.println("H1| ABF: " + aggregateABFH1 + " | Avg Depth: " + averageDepthH1 + " | Avg Search Cost: "
+					+ averageSearchCostH1 + " | Avg time: " + averageTimeCostH1);
+			System.out.println("H2| ABF: " + aggregateABFH2 + " | Avg Depth: " + averageDepthH2 + " | Avg Search Cost: "
+					+ averageSearchCostH2 + " | Avg time: " + averageTimeCostH2);
 			break;
 		default:
 			System.out.println("Invalid Input");
@@ -86,13 +120,13 @@ public class App {
 		}
 	}
 
-	public static ArrayList<String> solve(int input, Puzzle puzzle) {
-		ArrayList<String> solution = new ArrayList<String>();
+	public static SolutionData solve(int input, Puzzle puzzle) {
+		SolutionData solution = null;
 
 		if (input == 1) { // Heuristic 1
 			solution = puzzle.solve(puzzle.toString(), 1);
 		} else { // Heuristic 2
-			solution = puzzle.solve(puzzle.toString(), 1);
+			solution = puzzle.solve(puzzle.toString(), 2);
 		}
 		return solution;
 	}
@@ -103,12 +137,15 @@ public class App {
 			input = getInput();
 		}
 
-		ArrayList<String> solution = solve(input, puzzle);
+		SolutionData solution = solve(input, puzzle);
 
-		for (String state : solution) {
+		for (String state : solution.path) {
 			System.out.println(puzzle.prettyToString(state));
 		}
-		System.out.println("Number of steps :" + (solution.size() - 1));
+		System.out.println("Number of steps/depth: " + (solution.depth));
+		System.out.println("Time(ms) taken: " + (solution.timeElapsed));
+		System.out.println("Average Branching Factor: " + (solution.averageBranchingFactor));
+		System.out.println("Search Cost: " + (solution.searchCost));
 	}
 
 	public static int getInput() {

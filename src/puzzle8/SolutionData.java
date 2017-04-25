@@ -9,11 +9,11 @@ public class SolutionData {
 	protected int searchCost;
 	protected int depth;
 	
-	public SolutionData(ArrayList<String> solution, double abf, long time, int nodesGenerated, int steps) {
+	public SolutionData(ArrayList<String> solution, double abf, long time, int nodesGenerated) {
 		path = solution;
-		averageBranchingFactor = abf;
+		averageBranchingFactor = ((int)(abf*100))/(double)100;
 		timeElapsed = time;
 		searchCost = nodesGenerated;
-		depth = steps;
+		depth = path.size() - 1;
 	}
 }
