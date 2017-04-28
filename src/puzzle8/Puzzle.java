@@ -34,7 +34,7 @@ public class Puzzle implements Comparable<Puzzle> {
 	}
 	
 	// Return array of all legal neighbor states via move UP, DOWN, LEFT, RIGHT
-	public String[] getValidMoves() {
+	public ArrayList<String> getValidMoves() {
 		ArrayList<String> validMoves = new ArrayList<String>();
 
 		// Case: Move Up
@@ -54,7 +54,7 @@ public class Puzzle implements Comparable<Puzzle> {
 			validMoves.add(swapString(currentState, emptyIndex, emptyIndex + 1));
 		}
 
-		return validMoves.toArray(new String[validMoves.size()]);
+		return validMoves;
 	}
 
 	// h(n) = # of misplaced tiles
@@ -117,8 +117,8 @@ public class Puzzle implements Comparable<Puzzle> {
 			exploredSet.add(current.currentState);
 
 			if (!current.currentState.equals(GOAL_STATE)) {
-				String[] moves = current.getValidMoves();
-				branches += moves.length;
+				ArrayList<String> moves = current.getValidMoves();
+				branches += moves.size();
 
 				// Add neighbors to frontier
 				for (String state : moves) {
@@ -149,7 +149,7 @@ public class Puzzle implements Comparable<Puzzle> {
 			current = current.previousPuzzle;
 		}
 		Collections.reverse(path);
-		return new SolutionData(path, branches/exploredSet.size() ,timeElapsed, exploredSet.size());
+		return new SolutionData(path, branches/exploredSet.size(), timeElapsed, exploredSet.size());
 	}
 	
 	// Check if an integer array contains a given value
@@ -183,6 +183,10 @@ public class Puzzle implements Comparable<Puzzle> {
 
 	public String toString() {
 		return currentState;
+	}
+	
+	public void setState(String str) {
+		currentState = str;
 	}
 
 	@Override
