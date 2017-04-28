@@ -86,6 +86,7 @@ public class App {
 		}
 	}
 
+	// Choose between the two heuristics for a solution.
 	public static SolutionData solve(int input, Puzzle puzzle) {
 		SolutionData solution = null;
 
@@ -97,6 +98,7 @@ public class App {
 		return solution;
 	}
 
+	// Produce a single solution result with statistics.
 	public static void singleSolve(int input, Puzzle puzzle) {
 		promptSolution();
 		while (input == -1) {
@@ -110,78 +112,56 @@ public class App {
 		}
 		System.out.println("Number of steps/depth: " + (solution.depth));
 		System.out.println("Time(ms) taken: " + (solution.timeElapsed));
-		System.out.println("Average Branching Factor: " + (solution.averageBranchingFactor));
 		System.out.println("Search Cost: " + (solution.searchCost));
-		System.out.println("Effective Branching Factor: " + Math.pow(solution.searchCost, 1 / (double) solution.depth));
 	}
 
 	public static void multiSolve(HashMap<Integer, ArrayList<String>> samples) {
 		try {
 			File f = new File(OUTFILE);
-			PrintWriter p = new PrintWriter(new FileOutputStream(f, false));
-
+			PrintWriter pw = new PrintWriter(new FileOutputStream(f, false));
 			Integer[] keys = samples.keySet().toArray(new Integer[samples.keySet().size()]);
 			Arrays.sort(keys);
 
 			// For every DEPTH level
-			for (Integer layer : keys) {
-				p.write(("DEPTH " + layer + "\n"));
-				double aggregateABFH1 = 0.0;
-				double averageDepthH1 = 0.0;
-				double averageSearchCostH1 = 0.0;
-				double averageTimeCostH1 = 0.0;
-				double aggregateABFH2 = 0.0;
-				double averageDepthH2 = 0.0;
-				double averageSearchCostH2 = 0.0;
-				double averageTimeCostH2 = 0.0;
-				
+			for (Integer level : keys) {
+				pw.write(("DEPTH " + level + "\n"));
+				double avgSearchCostH1 = 0.0;
+				double avgTimeH1 = 0.0;
+				double avgSearchCostH2 = 0.0;
+				double avgTimeH2 = 0.0;
+
 				// For every puzzle in that DEPTH level
-				for (String configuration : samples.get(layer)) {
+				for (String configuration : samples.get(level)) {
 					SolutionData sol = null;
 					Puzzle puzzle = new Puzzle(configuration, 0, 0, null);
 					sol = puzzle.solve(configuration, 1);
 
-					String output = "Puzzle " + ": " + puzzle.toString() + " | depth(h1): " + sol.depth + " | ABF(h1): "
-							+ sol.averageBranchingFactor + " | time(h1.ms): " + sol.timeElapsed + " | cost(h1): "
-							+ sol.searchCost + " | EBF(h1): " + Math.pow(sol.searchCost, 1 / (double) sol.depth);
-					aggregateABFH1 += sol.averageBranchingFactor;
-					averageDepthH1 += sol.depth;
-					averageSearchCostH1 += sol.searchCost;
-					averageTimeCostH1 += sol.timeElapsed;
+					String output = "Puzzle " + ": " + puzzle.toString() + " | time(h1.ms): " + sol.timeElapsed
+							+ " | cost(h1): " + sol.searchCost;
+					avgSearchCostH1 += sol.searchCost;
+					avgTimeH1 += sol.timeElapsed;
 
 					sol = puzzle.solve(configuration, 2);
-					output += " | depth(h2): " + sol.depth + " | ABF(h2): " + sol.averageBranchingFactor
-							+ " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): " + sol.searchCost + " | EBF(h2): "
-							+ Math.pow(sol.searchCost, 1 / (double) sol.depth);
-					aggregateABFH2 += sol.averageBranchingFactor;
-					averageDepthH2 += sol.depth;
-					averageSearchCostH2 += sol.searchCost;
-					averageTimeCostH2 += sol.timeElapsed;
+					output += " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): " + sol.searchCost;
+					avgSearchCostH2 += sol.searchCost;
+					avgTimeH2 += sol.timeElapsed;
 
-					p.write(output + "\n");
+					pw.write(output + "\n");
 				}
 
-				double iterations = samples.get(layer).size();
+				double iterations = samples.get(level).size();
 				// Average the sums and print the averaged data
-				aggregateABFH1 = aggregateABFH1 / iterations;
-				averageDepthH1 = averageDepthH1 / iterations;
-				averageSearchCostH1 = averageSearchCostH1 / iterations;
-				averageTimeCostH1 = averageTimeCostH1 / iterations;
+				avgSearchCostH1 = avgSearchCostH1 / iterations;
+				avgTimeH1 = avgTimeH1 / iterations;
 
-				aggregateABFH2 = aggregateABFH2 / iterations;
-				averageDepthH2 = averageDepthH2 / iterations;
-				averageSearchCostH2 = averageSearchCostH2 / iterations;
-				averageTimeCostH2 = averageTimeCostH2 / iterations;
+				avgSearchCostH2 = avgSearchCostH2 / iterations;
+				avgTimeH2 = avgTimeH2 / iterations;
 
-				p.write("Average Summary of DEPTH " + layer + "\n");
-				p.write("H1| ABF: " + aggregateABFH1 + " | Avg Depth: " + averageDepthH1
-						+ " | Avg Search Cost: " + averageSearchCostH1 + " | Avg time: " + averageTimeCostH1
-						+ " | Avg EBF: " + Math.pow(averageSearchCostH1, 1 / averageDepthH1) + "\n");
-				p.write("H2| ABF: " + aggregateABFH2 + " | Avg Depth: " + averageDepthH2
-						+ " | Avg Search Cost: " + averageSearchCostH2 + " | Avg time: " + averageTimeCostH2
-						+ " | Avg EBF: " + Math.pow(averageSearchCostH2, 1 / averageDepthH2) + "\n");
+				pw.write("Average Summary of DEPTH " + level + "\n");
+				pw.write("H1| Avg Search Cost: " + avgSearchCostH1 + " | Avg time: " + avgTimeH1 + "\n");
+				pw.write("H2| Avg Search Cost: " + avgSearchCostH2 + " | Avg time: " + avgTimeH2 + "\n");
 			}
-			p.close();
+			pw.close();
 		} catch (Exception e) {
 			System.out.println("Error writing to file");
 		}
@@ -189,14 +169,12 @@ public class App {
 	}
 
 	public static void multiSolve(Puzzle puzzle, int iterations) {
-		double aggregateABFH1 = 0.0;
-		double averageDepthH1 = 0.0;
-		double averageSearchCostH1 = 0.0;
-		double averageTimeCostH1 = 0.0;
-		double aggregateABFH2 = 0.0;
-		double averageDepthH2 = 0.0;
-		double averageSearchCostH2 = 0.0;
-		double averageTimeCostH2 = 0.0;
+		double avgDepthH1 = 0.0;
+		double avgSearchCostH1 = 0.0;
+		double avgTimeH1 = 0.0;
+		double avgDepthH2 = 0.0;
+		double avgSearchCostH2 = 0.0;
+		double avgTimeH2 = 0.0;
 
 		// Sum the data of the solving iterations, print individual runs
 		for (int i = 0; i < iterations; i++) {
@@ -204,44 +182,36 @@ public class App {
 			puzzle = new Puzzle(getRandomPuzzle(), 0, 0, null);
 			sol = puzzle.solve(puzzle.toString(), 1);
 
-			String output = "Puzzle " + i + ": " + puzzle.toString() + " | depth(h1): " + sol.depth + " | ABF(h1): "
-					+ sol.averageBranchingFactor + " | time(h1.ms): " + sol.timeElapsed + " | cost(h1): "
-					+ sol.searchCost + " | EBF(h1): " + Math.pow(sol.searchCost, 1 / (double) sol.depth);
-			aggregateABFH1 += sol.averageBranchingFactor;
-			averageDepthH1 += sol.depth;
-			averageSearchCostH1 += sol.searchCost;
-			averageTimeCostH1 += sol.timeElapsed;
+			String output = "Puzzle " + i + ": " + puzzle.toString() + " | depth(h1): " + sol.depth + " | time(h1.ms): "
+					+ sol.timeElapsed + " | cost(h1): " + sol.searchCost;
+			avgDepthH1 += sol.depth;
+			avgSearchCostH1 += sol.searchCost;
+			avgTimeH1 += sol.timeElapsed;
 
 			sol = puzzle.solve(puzzle.toString(), 2);
-			output += " | depth(h2): " + sol.depth + " | ABF(h2): " + sol.averageBranchingFactor + " | time(h2.ms): "
-					+ sol.timeElapsed + " | cost(h2): " + sol.searchCost + " | EBF(h2): "
-					+ Math.pow(sol.searchCost, 1 / (double) sol.depth);
-			aggregateABFH2 += sol.averageBranchingFactor;
-			averageDepthH2 += sol.depth;
-			averageSearchCostH2 += sol.searchCost;
-			averageTimeCostH2 += sol.timeElapsed;
+			output += " | depth(h2): " + sol.depth + " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): "
+					+ sol.searchCost;
+			avgDepthH2 += sol.depth;
+			avgSearchCostH2 += sol.searchCost;
+			avgTimeH2 += sol.timeElapsed;
 
 			System.out.println(output);
 		}
 
 		// Average the sums and print the averaged data
-		aggregateABFH1 = aggregateABFH1 / iterations;
-		averageDepthH1 = averageDepthH1 / iterations;
-		averageSearchCostH1 = averageSearchCostH1 / iterations;
-		averageTimeCostH1 = averageTimeCostH1 / iterations;
+		avgDepthH1 = avgDepthH1 / iterations;
+		avgSearchCostH1 = avgSearchCostH1 / iterations;
+		avgTimeH1 = avgTimeH1 / iterations;
 
-		aggregateABFH2 = aggregateABFH2 / iterations;
-		averageDepthH2 = averageDepthH2 / iterations;
-		averageSearchCostH2 = averageSearchCostH2 / iterations;
-		averageTimeCostH2 = averageTimeCostH2 / iterations;
+		avgDepthH2 = avgDepthH2 / iterations;
+		avgSearchCostH2 = avgSearchCostH2 / iterations;
+		avgTimeH2 = avgTimeH2 / iterations;
 
 		System.out.println("Average Summary");
-		System.out.println("H1| ABF: " + aggregateABFH1 + " | Avg Depth: " + averageDepthH1 + " | Avg Search Cost: "
-				+ averageSearchCostH1 + " | Avg time: " + averageTimeCostH1 + " | Avg EBF: "
-				+ Math.pow(averageSearchCostH1, 1 / averageDepthH1));
-		System.out.println("H2| ABF: " + aggregateABFH2 + " | Avg Depth: " + averageDepthH2 + " | Avg Search Cost: "
-				+ averageSearchCostH2 + " | Avg time: " + averageTimeCostH2 + " | Avg EBF: "
-				+ Math.pow(averageSearchCostH2, 1 / averageDepthH2));
+		System.out.println("H1| Avg Depth: " + avgDepthH1 + " | Avg Search Cost: " + avgSearchCostH1 + " | Avg time: "
+				+ avgTimeH1);
+		System.out.println("H2| Avg Depth: " + avgDepthH2 + " | Avg Search Cost: " + avgSearchCostH2 + " | Avg time: "
+				+ avgTimeH2);
 	}
 
 	public static int getInput() {
@@ -294,6 +264,7 @@ public class App {
 		return true;
 	}
 
+	// Read samples.txt input file of 200 puzzle 8 problems
 	public static HashMap<Integer, ArrayList<String>> readSamples() {
 		HashMap<Integer, ArrayList<String>> samples = new HashMap<Integer, ArrayList<String>>();
 		try {
@@ -302,7 +273,7 @@ public class App {
 			BufferedReader br = new BufferedReader(fr);
 
 			// Skip the first header
-			int level =  Integer.parseInt(br.readLine().replaceAll("[^\\d]", ""));
+			int level = Integer.parseInt(br.readLine().replaceAll("[^\\d]", ""));
 			ArrayList<String> depth = new ArrayList<String>();
 
 			String next = br.readLine();

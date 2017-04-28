@@ -108,7 +108,6 @@ public class Puzzle implements Comparable<Puzzle> {
 		
 		frontier.add(new Puzzle(initialState, 0, 0, null));
 		Puzzle current = null;
-		double branches = 0.0;
 		long timeElapsed = 0;
 		long timeStart = System.currentTimeMillis();
 		
@@ -118,7 +117,6 @@ public class Puzzle implements Comparable<Puzzle> {
 
 			if (!current.currentState.equals(GOAL_STATE)) {
 				ArrayList<String> moves = current.getValidMoves();
-				branches += moves.size();
 
 				// Add neighbors to frontier
 				for (String state : moves) {
@@ -149,7 +147,7 @@ public class Puzzle implements Comparable<Puzzle> {
 			current = current.previousPuzzle;
 		}
 		Collections.reverse(path);
-		return new SolutionData(path, branches/exploredSet.size(), timeElapsed, exploredSet.size());
+		return new SolutionData(path, timeElapsed, exploredSet.size() + frontier.size());
 	}
 	
 	// Check if an integer array contains a given value
@@ -187,6 +185,7 @@ public class Puzzle implements Comparable<Puzzle> {
 	
 	public void setState(String str) {
 		currentState = str;
+		emptyIndex = currentState.indexOf('0');
 	}
 
 	@Override
