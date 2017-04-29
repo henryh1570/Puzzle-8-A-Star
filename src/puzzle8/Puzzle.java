@@ -169,28 +169,20 @@ public class Puzzle implements Comparable<Puzzle> {
 		return new String(arr);
 	}
 
-	public String prettyToString(String config) {
-		String str = config.substring(0, 3);
+	public String prettyToString(String configuration) {
+		String str = configuration.substring(0, 3).replace("", " ").trim();
 		str += "\n";
-		str += config.substring(3, 6);
+		str += configuration.substring(3, 6).replace("", " ").trim();
 		str += "\n";
-		str += config.substring(6, 9);
+		str += configuration.substring(6, 9).replace("", " ").trim();
 		str += "\n";
 		return str;
-	}
-
-	public String toString() {
-		return currentState;
-	}
-	
-	public void setState(String str) {
-		currentState = str;
-		emptyIndex = currentState.indexOf('0');
 	}
 
 	@Override
 	public int compareTo(Puzzle other) {
 		// Returns the comparison of f(n) from both puzzles.
+		// Necessary for implementing the priority queue heuristics.
 		int priority1 = stepCost + estimatedCost;
 		int priority2 = other.stepCost + other.estimatedCost;
 		

@@ -16,8 +16,9 @@ public class App {
 	public static Scanner k = new Scanner(System.in);
 	public static ArrayList<Character> list = new ArrayList<Character>();
 	public static final String GOAL_STATE = "012345678";
-	public static final String FILENAME = "samples.txt";
-	public static final String OUTFILE = "output.txt";
+	public static final String INPUT_FILE = "samples.txt";
+	public static final String OUTPUT_FILE = "output.txt";
+	public static final Puzzle PUZZLE_SOLVER = new Puzzle(GOAL_STATE, 0, 0, null);
 
 	public static void main(String[] args) {
 		// Preemptively prepare random puzzle generation
@@ -33,39 +34,25 @@ public class App {
 		}
 	}
 
-	// Generate a random solvable puzzle.
-	public static String getRandomPuzzle() {
-		String puzzle = "";
-		do {
-			Collections.shuffle(list);
-			puzzle = "";
-			for (Character c : list) {
-				puzzle += c;
-			}
-		} while (!isSolvable(puzzle));
-		return puzzle;
-	}
-
 	// Do some operation given user-input
 	public static void performOperations(int choice) {
-		Puzzle puzzle = null;
+		String configuration = "";
 		int input = -1;
 
 		switch (choice) {
 		case 1: // Single Random Solve
-			puzzle = new Puzzle(getRandomPuzzle(), 0, 0, null);
-			System.out.println("Random Puzzle: " + puzzle.toString());
-			singleSolve(input, puzzle);
+			configuration = getRandomPuzzle();
+			System.out.println("Random Puzzle: " + configuration);
+			singleSolve(input, configuration);
 			break;
 		case 2: // Single User-Input Solve
 			System.out.println("Enter a Puzzle-8 String: ");
-			String data = k.nextLine();
-			if (!isSolvable(data)) {
+			configuration = k.nextLine();
+			if (!isSolvable(configuration)) {
 				System.out.println("Invalid puzzle");
 			} else {
-				puzzle = new Puzzle(data, 0, 0, null);
-				System.out.println("User Puzzle: " + puzzle.toString());
-				singleSolve(input, puzzle);
+				System.out.println("User Puzzle: " + configuration);
+				singleSolve(input, configuration);
 			}
 			break;
 		case 3: // Terminate
@@ -74,7 +61,7 @@ public class App {
 		case 4: // Multi-Random, Dual-Heuristics Solving
 			System.out.println("Enter # of tests: ");
 			int iterations = getInput();
-			multiSolve(puzzle, iterations);
+			multiSolve(iterations);
 			break;
 		case 5: // Test the sample files
 			HashMap<Integer, ArrayList<String>> samples = readSamples();
@@ -85,143 +72,7 @@ public class App {
 			break;
 		}
 	}
-
-	// Choose between the two heuristics for a solution.
-	public static SolutionData solve(int input, Puzzle puzzle) {
-		SolutionData solution = null;
-
-		if (input == 1) { // Heuristic 1
-			solution = puzzle.solve(puzzle.toString(), 1);
-		} else { // Heuristic 2
-			solution = puzzle.solve(puzzle.toString(), 2);
-		}
-		return solution;
-	}
-
-	// Produce a single solution result with statistics.
-	public static void singleSolve(int input, Puzzle puzzle) {
-		promptSolution();
-		while (input == -1) {
-			input = getInput();
-		}
-
-		SolutionData solution = solve(input, puzzle);
-
-		for (String state : solution.path) {
-			System.out.println(puzzle.prettyToString(state));
-		}
-		System.out.println("Number of steps/depth: " + (solution.depth));
-		System.out.println("Time(ms) taken: " + (solution.timeElapsed));
-		System.out.println("Search Cost: " + (solution.searchCost));
-	}
-
-	public static void multiSolve(HashMap<Integer, ArrayList<String>> samples) {
-		try {
-			File f = new File(OUTFILE);
-			PrintWriter pw = new PrintWriter(new FileOutputStream(f, false));
-			Integer[] keys = samples.keySet().toArray(new Integer[samples.keySet().size()]);
-			Arrays.sort(keys);
-
-			// For every DEPTH level
-			for (Integer level : keys) {
-				pw.write(("DEPTH " + level + "\n"));
-				double avgSearchCostH1 = 0.0;
-				double avgTimeH1 = 0.0;
-				double avgSearchCostH2 = 0.0;
-				double avgTimeH2 = 0.0;
-
-				// For every puzzle in that DEPTH level
-				for (String configuration : samples.get(level)) {
-					SolutionData sol = null;
-					Puzzle puzzle = new Puzzle(configuration, 0, 0, null);
-					sol = puzzle.solve(configuration, 1);
-
-					String output = "Puzzle " + ": " + puzzle.toString() + " | time(h1.ms): " + sol.timeElapsed
-							+ " | cost(h1): " + sol.searchCost;
-					avgSearchCostH1 += sol.searchCost;
-					avgTimeH1 += sol.timeElapsed;
-
-					sol = puzzle.solve(configuration, 2);
-					output += " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): " + sol.searchCost;
-					avgSearchCostH2 += sol.searchCost;
-					avgTimeH2 += sol.timeElapsed;
-
-					pw.write(output + "\n");
-				}
-
-				double iterations = samples.get(level).size();
-				// Average the sums and print the averaged data
-				avgSearchCostH1 = avgSearchCostH1 / iterations;
-				avgTimeH1 = avgTimeH1 / iterations;
-
-				avgSearchCostH2 = avgSearchCostH2 / iterations;
-				avgTimeH2 = avgTimeH2 / iterations;
-
-				pw.write("Average Summary of DEPTH " + level + "\n");
-				pw.write("H1| Avg Search Cost: " + avgSearchCostH1 + " | Avg time: " + avgTimeH1 + "\n");
-				pw.write("H2| Avg Search Cost: " + avgSearchCostH2 + " | Avg time: " + avgTimeH2 + "\n");
-			}
-			pw.close();
-		} catch (Exception e) {
-			System.out.println("Error writing to file");
-		}
-		System.out.println("Job finished. Check " + OUTFILE);
-	}
-
-	public static void multiSolve(Puzzle puzzle, int iterations) {
-		double avgDepthH1 = 0.0;
-		double avgSearchCostH1 = 0.0;
-		double avgTimeH1 = 0.0;
-		double avgDepthH2 = 0.0;
-		double avgSearchCostH2 = 0.0;
-		double avgTimeH2 = 0.0;
-
-		// Sum the data of the solving iterations, print individual runs
-		for (int i = 0; i < iterations; i++) {
-			SolutionData sol = null;
-			puzzle = new Puzzle(getRandomPuzzle(), 0, 0, null);
-			sol = puzzle.solve(puzzle.toString(), 1);
-
-			String output = "Puzzle " + i + ": " + puzzle.toString() + " | depth(h1): " + sol.depth + " | time(h1.ms): "
-					+ sol.timeElapsed + " | cost(h1): " + sol.searchCost;
-			avgDepthH1 += sol.depth;
-			avgSearchCostH1 += sol.searchCost;
-			avgTimeH1 += sol.timeElapsed;
-
-			sol = puzzle.solve(puzzle.toString(), 2);
-			output += " | depth(h2): " + sol.depth + " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): "
-					+ sol.searchCost;
-			avgDepthH2 += sol.depth;
-			avgSearchCostH2 += sol.searchCost;
-			avgTimeH2 += sol.timeElapsed;
-
-			System.out.println(output);
-		}
-
-		// Average the sums and print the averaged data
-		avgDepthH1 = avgDepthH1 / iterations;
-		avgSearchCostH1 = avgSearchCostH1 / iterations;
-		avgTimeH1 = avgTimeH1 / iterations;
-
-		avgDepthH2 = avgDepthH2 / iterations;
-		avgSearchCostH2 = avgSearchCostH2 / iterations;
-		avgTimeH2 = avgTimeH2 / iterations;
-
-		System.out.println("Average Summary");
-		System.out.println("H1| Avg Depth: " + avgDepthH1 + " | Avg Search Cost: " + avgSearchCostH1 + " | Avg time: "
-				+ avgTimeH1);
-		System.out.println("H2| Avg Depth: " + avgDepthH2 + " | Avg Search Cost: " + avgSearchCostH2 + " | Avg time: "
-				+ avgTimeH2);
-	}
-
-	public static int getInput() {
-		try {
-			return Integer.parseInt(k.nextLine());
-		} catch (Exception e) {
-			return -1;
-		}
-	}
-
+	
 	public static boolean isSolvable(String state) {
 		// First, Check size and only for digits
 		if (state.length() != 9 || !state.matches("[0-9]+")) {
@@ -264,11 +115,167 @@ public class App {
 		return true;
 	}
 
+	// Generate a random solvable puzzle.
+	public static String getRandomPuzzle() {
+		String configuration = "";
+		do {
+			Collections.shuffle(list);
+			configuration = "";
+			for (Character c : list) {
+				configuration += c;
+			}
+		} while (!isSolvable(configuration));
+		return configuration;
+	}
+
+	// Choose between the two heuristics for a solution.
+	public static SolutionData solve(int input, String configuration) {
+		SolutionData solution = null;
+		
+		if (input == 1) {
+			// Heuristic 1
+			solution = PUZZLE_SOLVER.solve(configuration, 1);
+		} else {
+			// Heuristic 2
+			solution = PUZZLE_SOLVER.solve(configuration, 2);
+		}
+		return solution;
+	}
+
+	// Produce a single solution result with statistics.
+	public static void singleSolve(int input, String configuration) {
+		promptSolution();
+		while (input == -1) {
+			input = getInput();
+		}
+
+		SolutionData solution = solve(input, configuration);
+
+		// Visually display each change in state from initial to final
+		for (String state : solution.path) {
+			System.out.println(PUZZLE_SOLVER.prettyToString(state));
+		}
+		System.out.println("Number of steps/depth: " + (solution.depth));
+		System.out.println("Time(ms) taken: " + (solution.timeElapsed));
+		System.out.println("Search Cost: " + (solution.searchCost));
+	}
+
+	// Solve many puzzles from an input sample file to an output file.
+	// Samples is a hashmap of arraylists of 200 puzzle configurations keyed by depth
+	public static void multiSolve(HashMap<Integer, ArrayList<String>> samples) {
+		try {
+			File f = new File(OUTPUT_FILE);
+			PrintWriter pw = new PrintWriter(new FileOutputStream(f, false));
+			Integer[] keys = samples.keySet().toArray(new Integer[samples.keySet().size()]);
+			Arrays.sort(keys);
+
+			// For every DEPTH level
+			for (Integer level : keys) {
+				pw.write(("DEPTH " + level + "\n"));
+				double avgSearchCostH1 = 0.0;
+				double avgTimeH1 = 0.0;
+				double avgSearchCostH2 = 0.0;
+				double avgTimeH2 = 0.0;
+
+				// For every individual puzzle at the current depth level.
+				for (String configuration : samples.get(level)) {
+					SolutionData sol = null;
+					
+					// Solve via heuristic one first
+					sol = PUZZLE_SOLVER.solve(configuration, 1);
+					String output = "Puzzle " + ": " + configuration + " | time(h1.ms): " + sol.timeElapsed
+							+ " | cost(h1): " + sol.searchCost;
+					avgSearchCostH1 += sol.searchCost;
+					avgTimeH1 += sol.timeElapsed;
+					
+					// Solve via heuristic two
+					sol = PUZZLE_SOLVER.solve(configuration, 2);
+					output += " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): " + sol.searchCost;
+					avgSearchCostH2 += sol.searchCost;
+					avgTimeH2 += sol.timeElapsed;
+
+					pw.write(output + "\n");
+				}
+
+				double iterations = samples.get(level).size();
+				// Average the sums and print the averaged data
+				avgSearchCostH1 = avgSearchCostH1 / iterations;
+				avgTimeH1 = avgTimeH1 / iterations;
+
+				avgSearchCostH2 = avgSearchCostH2 / iterations;
+				avgTimeH2 = avgTimeH2 / iterations;
+
+				pw.write("Average Summary of DEPTH " + level + "\n");
+				pw.write("H1| Avg Search Cost: " + avgSearchCostH1 + " | Avg time: " + avgTimeH1 + "\n");
+				pw.write("H2| Avg Search Cost: " + avgSearchCostH2 + " | Avg time: " + avgTimeH2 + "\n");
+			}
+			pw.close();
+		} catch (Exception e) {
+			System.out.println("Error writing to file");
+		}
+		System.out.println("Job finished. Check " + OUTPUT_FILE);
+	}
+
+	// Solve many randomly generated puzzles.
+	public static void multiSolve(int iterations) {
+		double avgDepthH1 = 0.0;
+		double avgSearchCostH1 = 0.0;
+		double avgTimeH1 = 0.0;
+		double avgDepthH2 = 0.0;
+		double avgSearchCostH2 = 0.0;
+		double avgTimeH2 = 0.0;
+
+		// Sum the data of the solving iterations, print individual runs
+		for (int i = 0; i < iterations; i++) {
+			SolutionData sol = null;
+			String configuration = getRandomPuzzle();
+			sol = PUZZLE_SOLVER.solve(configuration, 1);
+
+			String output = "Puzzle " + i + ": " + configuration + " | depth(h1): " + sol.depth + " | time(h1.ms): "
+					+ sol.timeElapsed + " | cost(h1): " + sol.searchCost;
+			avgDepthH1 += sol.depth;
+			avgSearchCostH1 += sol.searchCost;
+			avgTimeH1 += sol.timeElapsed;
+
+			sol = PUZZLE_SOLVER.solve(configuration, 2);
+			output += " | depth(h2): " + sol.depth + " | time(h2.ms): " + sol.timeElapsed + " | cost(h2): "
+					+ sol.searchCost;
+			avgDepthH2 += sol.depth;
+			avgSearchCostH2 += sol.searchCost;
+			avgTimeH2 += sol.timeElapsed;
+
+			System.out.println(output);
+		}
+
+		// Average the sums and print the averaged data
+		avgDepthH1 = avgDepthH1 / iterations;
+		avgSearchCostH1 = avgSearchCostH1 / iterations;
+		avgTimeH1 = avgTimeH1 / iterations;
+
+		avgDepthH2 = avgDepthH2 / iterations;
+		avgSearchCostH2 = avgSearchCostH2 / iterations;
+		avgTimeH2 = avgTimeH2 / iterations;
+
+		System.out.println("Average Summary");
+		System.out.println("H1| Avg Depth: " + avgDepthH1 + " | Avg Search Cost: " + avgSearchCostH1 + " | Avg time: "
+				+ avgTimeH1);
+		System.out.println("H2| Avg Depth: " + avgDepthH2 + " | Avg Search Cost: " + avgSearchCostH2 + " | Avg time: "
+				+ avgTimeH2);
+	}
+
+	public static int getInput() {
+		try {
+			return Integer.parseInt(k.nextLine());
+		} catch (Exception e) {
+			return -1;
+		}
+	}
+
 	// Read samples.txt input file of 200 puzzle 8 problems
 	public static HashMap<Integer, ArrayList<String>> readSamples() {
 		HashMap<Integer, ArrayList<String>> samples = new HashMap<Integer, ArrayList<String>>();
 		try {
-			File f = new File(FILENAME);
+			File f = new File(INPUT_FILE);
 			FileReader fr = new FileReader(f);
 			BufferedReader br = new BufferedReader(fr);
 
